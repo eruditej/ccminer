@@ -91,35 +91,35 @@ int scanhash_lyra2v2(int thr_id, uint32_t *pdata,
 	else if(strstr(props.name, "Titan"))
 	{
 		intensity = 256 * 256 * 15;
-#ifdef _WIN64
+#if defined _WIN64 || defined _LP64
 		intensity = 256 * 256 * 22;
 #endif
 	}
 	else if(strstr(props.name, "1080"))
 	{
 		intensity = 256 * 256 * 15;
-#ifdef _WIN64
+#if defined _WIN64 || defined _LP64
 		intensity = 256 * 256 * 22;
 #endif
 	}
 	else if(strstr(props.name, "1070"))
 	{
 		intensity = 256 * 256 * 15;
-#ifdef _WIN64
+#if defined _WIN64 || defined _LP64
 		intensity = 256 * 256 * 22;
 #endif
 	}
 	else if(strstr(props.name, "970"))
 	{
 		intensity = 256 * 256 * 15;
-#ifdef _WIN64
+#if defined _WIN64 || defined _LP64
 		intensity = 256 * 256 * 22;
 #endif
 	}
 	else if (strstr(props.name, "980"))
 	{
 		intensity = 256 * 256 * 15;
-#ifdef _WIN64
+#if defined _WIN64 || defined _LP64
 		intensity = 256 * 256 * 22;
 #endif
 	}
@@ -144,6 +144,8 @@ int scanhash_lyra2v2(int thr_id, uint32_t *pdata,
 	static THREAD bool init = false;
 	if (!init)
 	{ 
+		if(!gpus_intensity[thr_id] && opt_debug)
+			applog(LOG_WARNING, "Using default intensity (%d threads)", throughputmax);
 		CUDA_SAFE_CALL(cudaSetDevice(device_map[thr_id]));
 		CUDA_SAFE_CALL(cudaDeviceReset());
 		CUDA_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync));
@@ -219,7 +221,7 @@ int scanhash_lyra2v2(int thr_id, uint32_t *pdata,
 					else
 					{
 						if(vhash64[7] != Htarg) // don't show message if it is equal but fails fulltest
-							applog(LOG_WARNING, "GPU #%d: result does not validate on CPU!", thr_id);
+							applog(LOG_WARNING, "GPU #%d: result does not validate on CPU!", device_map[thr_id]);
 					}
 				}
 				pdata[19] = foundNonce[0];
@@ -229,7 +231,7 @@ int scanhash_lyra2v2(int thr_id, uint32_t *pdata,
 			else
 			{
 				if (vhash64[7] != Htarg) // don't show message if it is equal but fails fulltest
-					applog(LOG_WARNING, "GPU #%d: result does not validate on CPU!", thr_id);
+					applog(LOG_WARNING, "GPU #%d: result does not validate on CPU!", device_map[thr_id]);
 			}
 		}
 
