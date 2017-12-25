@@ -3,9 +3,6 @@
 #define CUBEHASH_ROUNDS 16 /* this is r for CubeHashr/b */
 #define CUBEHASH_BLOCKBYTES 32 /* this is b for CubeHashr/b */
 
-#define TPB35 576
-#define TPB50 1024
-
 #define ROTATEUPWARDS7(a)  ROTL32(a,7)
 #define ROTATEUPWARDS11(a) ROTL32(a,11)
 
@@ -13,7 +10,6 @@ __device__ __forceinline__ void rrounds(uint32_t x[2][2][2][2][2])
 {
 	int r;
 
-	uint32_t x0[2][2][2][2];
 	uint32_t x1[2][2][2][2];
 
 	for(r = 0; r < CUBEHASH_ROUNDS; r += 2)
@@ -188,15 +184,12 @@ void Final(uint32_t x[2][2][2][2][2], uint32_t *hashval)
 	hashval[7] = x[0][0][1][1][1];
 }
 
-#if __CUDA_ARCH__ >= 500
-__global__	__launch_bounds__(TPB50, 1)
-#else
-__global__	__launch_bounds__(TPB35, 1)
-#endif
+__global__
 void cubehash256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 *g_hash)
 {
-	const uint32_t thread = (blockDim.x * blockIdx.x + threadIdx.x);
-	if(thread < threads)
+	uint32_t index = blockDim.x * blockIdx.x + threadIdx.x;
+	uint32_t stride = blockDim.x * gridDim.x;
+	for (int thread = index; thread < threads; thread += stride)
 	{
 #if __CUDA_ARCH__ >= 500
 		uint2 Hash[4];
@@ -270,13 +263,16 @@ void cubehash256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 *g_ha
 __host__
 void cubehash256_cpu_hash_32(int thr_id, uint32_t threads, uint32_t startNounce, uint64_t *d_hash)
 {
-	uint32_t tpb = TPB35;
-	if(cuda_arch[thr_id] >= 500) tpb = TPB50;
 
-	dim3 grid((threads + tpb - 1) / tpb);
-	dim3 block(tpb);
+	int blockSize;
+	int minGridSize;
+	int gridSize;
 
-	cubehash256_gpu_hash_32 << <grid, block, 0, gpustream[thr_id] >> > (threads, startNounce, (uint2*)d_hash);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
+		(void*)cubehash256_gpu_hash_32, 0, threads);
+	gridSize = (threads + blockSize - 1) / blockSize;
+
+	cubehash256_gpu_hash_32 << <gridSize, blockSize, 0, gpustream[thr_id] >> > (threads, startNounce, (uint2*)d_hash);
 	CUDA_SAFE_CALL(cudaGetLastError());
 	if(opt_debug)
 		CUDA_SAFE_CALL(cudaDeviceSynchronize());
