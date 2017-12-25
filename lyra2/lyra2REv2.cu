@@ -83,7 +83,12 @@ int scanhash_lyra2v2(int thr_id, uint32_t *pdata,
 
 	cudaDeviceProp props;
 	cudaGetDeviceProperties(&props, device_map[thr_id]);
-	if(strstr(props.name, "Titan"))
+	// if its too new and awesome, linux will give it a generic name
+	if(strstr(props.name, "Graphics Device"))
+	{
+		intensity = 256 * 256 * 15;
+	}
+	else if(strstr(props.name, "Titan"))
 	{
 		intensity = 256 * 256 * 15;
 #ifdef _WIN64
