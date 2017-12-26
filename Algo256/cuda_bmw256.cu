@@ -50,12 +50,14 @@ __forceinline__ __device__ uint32_t expand32_2(const int i, const uint32_t *mess
 		+rs5(Q[i - 7]) + rs6(Q[i - 5]) + rs7(Q[i - 3]) + ss4(Q[i - 2]) + ss5(Q[i - 1]));
 }
 
-#define TPB 512
-__global__	__launch_bounds__(TPB, 2)
-void bmw256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 *g_hash, uint32_t *const __restrict__ nonceVector, uint32_t Target)
+__global__
+void bmw256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 __restrict__ *g_hash, uint32_t *const __restrict__ nonceVector, uint32_t Target)
 {
-	const uint32_t thread = (blockDim.x * blockIdx.x + threadIdx.x);
+	//const uint32_t thread = (blockDim.x * blockIdx.x + threadIdx.x);
 	//	if (thread < threads)
+	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	uint32_t stride = blockDim.x * gridDim.x;
+	for (int thread = index; thread < threads; thread += stride)
 	{
 		uint32_t backup = Target;
 		uint32_t message[16] = {0};
@@ -301,10 +303,15 @@ void bmw256_cpu_hash_32(int thr_id, uint32_t threads, uint32_t startNounce, uint
 	CUDA_SAFE_CALL(cudaMemsetAsync(d_nonce[thr_id], 0x0, 2 * sizeof(uint32_t), gpustream[thr_id]));
 
 	// berechne wie viele Thread Blocks wir brauchen
-	dim3 grid((threads + TPB - 1) / TPB);
-	dim3 block(TPB);
+	int blockSize;
+	int minGridSize;
+	int gridSize;
 
-	bmw256_gpu_hash_32 << <grid, block >> >(threads, startNounce, (uint2 *)g_hash, d_nonce[thr_id], Target);
+	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
+	(void*)bmw256_gpu_hash_32, 0, threads);
+	gridSize = (threads + blockSize - 1) / blockSize;
+
+	bmw256_gpu_hash_32 << <gridSize, blockSize >> >(threads, startNounce, (uint2 *)g_hash, d_nonce[thr_id], Target);
 	CUDA_SAFE_CALL(cudaGetLastError());
 	if(opt_debug)
 		CUDA_SAFE_CALL(cudaDeviceSynchronize());
