@@ -60,7 +60,7 @@ __constant__ uint32_t myr_sha256_gpu_w2Table[64] = {
 #define s0(x)            (ROTR32(x, 7) ^ ROTR32(x, 18) ^ R(x, 3))
 #define s1(x)            (ROTR32(x, 17) ^ ROTR32(x, 19) ^ R(x, 10))
 
-__device__ void myriadgroestl_gpu_sha256(uint32_t *message)
+static __device__ void myriadgroestl_gpu_sha256(uint32_t *message)
 {
     uint32_t W1[16];
     uint32_t W2[16];
@@ -291,7 +291,7 @@ __host__ void myriadgroestl_cpu_init(int thr_id, uint32_t threads)
 	cudaMalloc(&d_resultNonce[thr_id], 4 * sizeof(uint32_t));
 
     // Speicher für temporäreHashes
-	CUDA_SAFE_CALL(cudaMalloc(&d_outputHashes[thr_id], 16 * sizeof(uint32_t)*threads));
+	CUDA_SAFE_CALL(cudaMalloc(&d_outputHashes[thr_id], 16ULL * sizeof(uint32_t)*threads));
 }
 
 __host__ void myriadgroestl_cpu_setBlock(int thr_id, void *data, void *pTargetIn)
