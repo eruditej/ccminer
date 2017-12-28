@@ -308,7 +308,7 @@ void bmw256_cpu_hash_32(int thr_id, uint32_t threads, uint32_t startNounce, uint
 	int gridSize;
 
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
-	(void*)bmw256_gpu_hash_32, 0, threads);
+	(void*)bmw256_gpu_hash_32, 0, 0);
 	gridSize = (threads + blockSize - 1) / blockSize;
 
 	bmw256_gpu_hash_32 << <gridSize, blockSize >> >(threads, startNounce, (uint2 *)g_hash, d_nonce[thr_id], Target);

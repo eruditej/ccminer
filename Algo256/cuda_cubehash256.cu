@@ -165,7 +165,7 @@ __device__ __forceinline__ void rrounds(uint32_t x[2][2][2][2][2])
 }
 
 __device__ __forceinline__
-void Final(uint32_t x[2][2][2][2][2], uint32_t *hashval)
+void Final(uint32_t x[2][2][2][2][2], uint32_t __restrict__ *hashval)
 {
 	/* "the integer 1 is xored into the last state word x_11111" */
 	x[1][1][1][1][1] ^= 1U;
@@ -185,7 +185,7 @@ void Final(uint32_t x[2][2][2][2][2], uint32_t *hashval)
 }
 
 __global__
-void cubehash256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 *g_hash)
+void cubehash256_gpu_hash_32(uint32_t threads, uint32_t startNounce, uint2 __restrict__ *g_hash)
 {
 	uint32_t index = blockDim.x * blockIdx.x + threadIdx.x;
 	uint32_t stride = blockDim.x * gridDim.x;
@@ -269,7 +269,7 @@ void cubehash256_cpu_hash_32(int thr_id, uint32_t threads, uint32_t startNounce,
 	int gridSize;
 
 	cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
-		(void*)cubehash256_gpu_hash_32, 0, threads);
+		(void*)cubehash256_gpu_hash_32, 0, 0);
 	gridSize = (threads + blockSize - 1) / blockSize;
 
 	cubehash256_gpu_hash_32 << <gridSize, blockSize, 0, gpustream[thr_id] >> > (threads, startNounce, (uint2*)d_hash);
